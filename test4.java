@@ -2,8 +2,6 @@ package com.citi.reghub.rhoo.cust;
 
 import com.citi.reghub.core.context.ContextBase;
 import com.citi.reghub.core.context.ContextInterface;
-import com.citi.reghub.core.decision.DecisionFactory;
-import com.citi.reghub.core.decision.DecisionInterface;
 import com.citi.reghub.core.fact.Fact;
 import com.citi.reghub.core.fact.FactContainer;
 import com.citi.reghub.core.metadata.local.MetaDataLoaderUtility;
@@ -20,8 +18,7 @@ public class RhooPriceTest {
     private static final String METADATA_DIRS = "../reghub-olympus-core/seed/metadata;../reghub-olympus-tech-core/seed/metadata/";
     private static final String CACHE_NAME = "file_system";
     private static final String FACT_ID = "cust_fact";
-    private static final String FACT_CONTEXT = "fact.container.current";
-    private static final String ITEM_KEY = "item";
+    private static final String CONTEXT_KEY = "fact.container.current";
 
     private ContextInterface contextInterface;
     private FactContainer factContainer;
@@ -35,61 +32,54 @@ public class RhooPriceTest {
     @Before
     public void setup() {
         testfact = new Fact(FACT_ID);
-        contextInterface = new ContextBase();
         factContainer = new FactContainer();
         factContainer.setFact(testfact);
-        contextInterface.setContext(FACT_CONTEXT, factContainer);
+
+        contextInterface = new ContextBase();
+        contextInterface.setContext(CONTEXT_KEY, factContainer);
     }
 
     @Test
     public void testCustFactTradeDecision() {
-        testfact.set(ITEM_KEY, "trade");
-        executeDecisionAndPipeAndAssertPrice("rhoo_test_decision_check_price_5", "rhoo_test_pipe_price_as_5", 5.0);
+        testfact.set("item", "trade");
+        executePipeAndAssertPrice(5.0);
     }
 
     @Test
     public void testCustFactNonTradeDecision() {
-        testfact.set(ITEM_KEY, "non-trade");
-        executeDecisionAndPipeAndAssertPrice("rhoo_test_decision_price_1", "rhoo_test_pipe_price_as_1", 1.0);
+        testfact.set("item", "non-trade");
+        executePipeAndAssertPrice(1.0);
     }
 
     @Test
     public void testCustFactEnquiryDecision() {
-        testfact.set(ITEM_KEY, "enquiry");
-        executeDecisionAndPipeAndAssertPrice("rhoo_test_decision_price_0", "rhoo_test_pipe_price_as_0", 0.0);
+        testfact.set("item", "enquiry");
+        executePipeAndAssertPrice(0.0);
     }
 
     @Test
     public void testCustFactDefaultDecision() {
-        testfact.set(ITEM_KEY, "other");
-        executeDecisionAndPipeAndAssertPrice("rhoo_test_decision_price_1", "rhoo_test_pipe_price_as_1", 1.0);
+        testfact.set("item", "other");
+        executePipeAndAssertPrice(1.0);
     }
 
-    /**
-     * Core test logic: Apply decision, execute pipe, assert price value
-     */
-    private void executeDecisionAndPipeAndAssertPrice(String decisionID, String pipeID, double expectedPrice) {
+    private void executePipeAndAssertPrice(double expectedPrice) {
         try {
-            // Apply decision
-            DecisionInterface decision = DecisionFactory.getDecisionFactory().getDecision(decisionID);
-            boolean applies = decision.applies(contextInterface);
-            System.out.println("Decision applied: " + applies);
-
-            // Execute enrichment via pipe
-            PipeInterface pipe = PipeFactory.getPipeFactory().getPipe(pipeID);
+            PipeInterface pipe = PipeFactory.getPipeFactory().getPipe("rhoo_test_pipe_cust_fact_price_as_1");
             pipe.execute(contextInterface);
 
-            // Assert final price
-            Double actualPrice = testfact.getDouble("price");
-            System.out.printf("Final price after pipe '%s': %.2f%n", pipeID, actualPrice);
+            // Workaround in case price is still set as String
+            Object priceObj = testfact.get("price");
+            Double price = priceObj instanceof Double
+                ? (Double) priceObj
+                : Double.valueOf(priceObj.toString());
 
-            assertThat(actualPrice)
-                    .as("Price enrichment should match expected value")
-                    .isEqualTo(expectedPrice);
+            System.out.println("price = " + price);
+            assertThat(price).isEqualTo(expectedPrice);
 
         } catch (Exception e) {
             e.printStackTrace();
-            throw new AssertionError("Test failed for decision: " + decisionID + " and pipe: " + pipeID, e);
+            throw new AssertionError("Failed to execute pipe and assert price", e);
         }
     }
 }
