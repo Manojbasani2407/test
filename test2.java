@@ -42,8 +42,8 @@ public class RhooCustIdTest {
     }
 
     /**
-     * Tests that 'id' field is enriched using 'custId' + original 'id' via pipe: rhoo_test_pipe_id
-     * Expected: "123-Test0123" or per enrichment logic (e.g., if uppercased: "123-TEST0123")
+     * Tests enrichment of 'id' using both 'custId' and 'id' via pipe 'rhoo_test_pipe_id'
+     * Expected: "123-TEST0123"
      */
     @Test
     public void testCustFactIdEnrichment() {
@@ -54,19 +54,19 @@ public class RhooCustIdTest {
             PipeInterface pipe = PipeFactory.getPipeFactory().getPipe("rhoo_test_pipe_id");
             pipe.execute(context);
 
-            String enrichedId = getFactValue("id");
-            System.out.println("Enriched ID: " + enrichedId);
+            String actualId = getFactValue("id");
+            System.out.println("Enriched ID: " + actualId);
 
-            assertEquals("123-TEST0123", enrichedId);  // ← match your actual logic here
+            assertEquals("123-TEST0123", actualId);
 
         } catch (Exception e) {
             e.printStackTrace();
-            fail("Pipe execution failed for ID enrichment: " + e.getMessage());
+            fail("Pipe execution failed for cust_fact:id enrichment: " + e.getMessage());
         }
     }
 
     /**
-     * Tests that 'custId' is enriched (normalized/uppercased) via pipe: rhoo_test_pipe_custId
+     * Tests normalization of 'custId' via pipe 'rhoo_test_pipe_custId'
      * Expected: "TEST0123"
      */
     @Test
@@ -77,19 +77,19 @@ public class RhooCustIdTest {
             PipeInterface pipe = PipeFactory.getPipeFactory().getPipe("rhoo_test_pipe_custId");
             pipe.execute(context);
 
-            String enrichedCustId = getFactValue("custId");
-            System.out.println("Enriched custId: " + enrichedCustId);
+            String actualCustId = getFactValue("custId");
+            System.out.println("Enriched custId: " + actualCustId);
 
-            assertEquals("TEST0123", enrichedCustId);  // ← match your enrichment outcome
+            assertEquals("TEST0123", actualCustId);
 
         } catch (Exception e) {
             e.printStackTrace();
-            fail("Pipe execution failed for custId enrichment: " + e.getMessage());
+            fail("Pipe execution failed for cust_fact:custId enrichment: " + e.getMessage());
         }
     }
 
     /**
-     * Helper to get the field value from the current fact container.
+     * Utility to extract a field value from the fact container.
      */
     private String getFactValue(String key) {
         FactContainer container = (FactContainer) context.getContext(CONTEXT_KEY);
