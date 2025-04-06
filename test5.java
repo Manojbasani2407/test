@@ -92,11 +92,11 @@ public class RhooStatusTest {
             pipe.execute(contextInterface);
 
             String status = testfact.getString("status");
-            System.out.printf("status = %s (via pipe: %s, decision: %s)%n", status, pipeId, decisionId);
+            System.out.println("status = " + status);
             assertThat(status).isEqualTo(expectedStatus);
         } catch (Exception e) {
             e.printStackTrace();
-            throw new AssertionError("Test failed for decision=" + decisionId + ", pipe=" + pipeId, e);
+            throw new AssertionError("Test failed for decision=" + decisionId, e);
         }
     }
 }
