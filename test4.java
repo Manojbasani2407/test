@@ -42,44 +42,46 @@ public class RhooPriceTest {
     @Test
     public void testCustFactTradeDecision() {
         testfact.set("item", "trade");
-        executePipeAndAssertPrice(5.0);
+        executePipeAndAssertPrice("rhoo_test_pipe_price_as_5", 5.0);
     }
 
     @Test
     public void testCustFactNonTradeDecision() {
         testfact.set("item", "non-trade");
-        executePipeAndAssertPrice(1.0);
+        executePipeAndAssertPrice("rhoo_test_pipe_price_as_1", 1.0);
     }
 
     @Test
     public void testCustFactEnquiryDecision() {
         testfact.set("item", "enquiry");
-        executePipeAndAssertPrice(0.0);
+        executePipeAndAssertPrice("rhoo_test_pipe_price_as_0", 0.0);
     }
 
     @Test
     public void testCustFactDefaultDecision() {
         testfact.set("item", "other");
-        executePipeAndAssertPrice(1.0);
+        executePipeAndAssertPrice("rhoo_test_pipe_price_as_1", 1.0);
     }
 
-    private void executePipeAndAssertPrice(double expectedPrice) {
+    /**
+     * Utility method to execute pipe and assert price outcome.
+     */
+    private void executePipeAndAssertPrice(String pipeID, double expectedPrice) {
         try {
-            PipeInterface pipe = PipeFactory.getPipeFactory().getPipe("rhoo_test_pipe_cust_fact_price_as_1");
+            PipeInterface pipe = PipeFactory.getPipeFactory().getPipe(pipeID);
             pipe.execute(contextInterface);
 
-            // Workaround in case price is still set as String
             Object priceObj = testfact.get("price");
             Double price = priceObj instanceof Double
-                ? (Double) priceObj
-                : Double.valueOf(priceObj.toString());
+                    ? (Double) priceObj
+                    : Double.valueOf(priceObj.toString());
 
-            System.out.println("price = " + price);
+            System.out.printf("price = %.2f (via pipe: %s)%n", price, pipeID);
             assertThat(price).isEqualTo(expectedPrice);
 
         } catch (Exception e) {
             e.printStackTrace();
-            throw new AssertionError("Failed to execute pipe and assert price", e);
+            throw new AssertionError("Pipe execution failed for " + pipeID, e);
         }
     }
 }
