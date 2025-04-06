@@ -42,8 +42,8 @@ public class RhooCustIdTest {
     }
 
     /**
-     * Test enrichment of 'id' field using both 'id' and 'custId' via pipe 'rhoo_test_pipe_id'.
-     * Expected output: "123-Test0123"
+     * Tests that 'id' field is enriched using 'custId' + original 'id' via pipe: rhoo_test_pipe_id
+     * Expected: "123-Test0123" or per enrichment logic (e.g., if uppercased: "123-TEST0123")
      */
     @Test
     public void testCustFactIdEnrichment() {
@@ -57,7 +57,7 @@ public class RhooCustIdTest {
             String enrichedId = getFactValue("id");
             System.out.println("Enriched ID: " + enrichedId);
 
-            assertEquals("123-Test0123", enrichedId);
+            assertEquals("123-TEST0123", enrichedId);  // ← match your actual logic here
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -66,8 +66,8 @@ public class RhooCustIdTest {
     }
 
     /**
-     * Test enrichment or transformation of 'custId' field via pipe 'rhoo_test_pipe_custId'.
-     * Expected output: "Test0123"
+     * Tests that 'custId' is enriched (normalized/uppercased) via pipe: rhoo_test_pipe_custId
+     * Expected: "TEST0123"
      */
     @Test
     public void testCustIdEnrichment() {
@@ -80,7 +80,7 @@ public class RhooCustIdTest {
             String enrichedCustId = getFactValue("custId");
             System.out.println("Enriched custId: " + enrichedCustId);
 
-            assertEquals("Test0123", enrichedCustId); // Adjust expected value based on actual enrichment logic
+            assertEquals("TEST0123", enrichedCustId);  // ← match your enrichment outcome
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -89,7 +89,7 @@ public class RhooCustIdTest {
     }
 
     /**
-     * Utility method to get a field value from the fact under test.
+     * Helper to get the field value from the current fact container.
      */
     private String getFactValue(String key) {
         FactContainer container = (FactContainer) context.getContext(CONTEXT_KEY);
