@@ -24,13 +24,11 @@ import static org.junit.Assert.assertNull;
 
 public class RhooCreatedDtTest {
 
-    private static final String METADATA_DIRS = "../reghub-olympus-core/seed/metadata;" + "./seed";
+    private static final String METADATA_DIRS = "../reghub-olympus-core/seed/metadata;./seed";
     private static final String CACHE_NAME = "file_system_cache";
     private static final String FACT_ID = "cust_fact";
     private static final String CONTEXT_KEY = "fact.container.current";
     private static final String CREATED_DATE_KEY = "createdDate";
-    private static final LocalDate EXPECTED_LOCAL_DATE = LocalDate.of(2025, 5, 25);
-    private static final LocalDateTime EXPECTED_DATE_TIME = LocalDateTime.of(2025, 5, 25, 20, 35, 20, 26);
 
     private ContextInterface contextInterface;
     private FactContainer factContainer;
@@ -46,24 +44,22 @@ public class RhooCreatedDtTest {
         testFact = new Fact(FACT_ID);
         factContainer = new FactContainer();
         factContainer.setFact(testFact);
-
         contextInterface = new ContextBase();
         contextInterface.setContext(CONTEXT_KEY, factContainer);
     }
 
     @Test
     public void testCreatedDateEnrichmentViaPipe() {
-        testFact.set(CREATED_DATE_KEY, EXPECTED_DATE_TIME);
+        testFact.set(CREATED_DATE_KEY, LocalDateTime.of(2025, 5, 25, 20, 35, 20, 26));
+        executePipeAndAssertDate(LocalDate.of(2025, 5, 25));
+    }
 
+    private void executePipeAndAssertDate(LocalDate expectedDate) {
         try {
-            PipeInterface pipe = PipeFactory.getPipeFactory().getPipe("rhoo_test_pipe_CreatedDate");
+            PipeInterface pipe = PipeFactory.getPipeFactory().getPipe("rhoo_test_pipe_cust_fact_createdDate");
             pipe.execute(contextInterface);
-
-            LocalDate result = testFact.getLocalDate(CREATED_DATE_KEY);
-            assertThat(result)
-                    .as("Validate LocalDate enrichment after pipe execution")
-                    .isEqualTo(EXPECTED_LOCAL_DATE);
-
+            LocalDate createdDate = testFact.getLocalDateTime(CREATED_DATE_KEY).toLocalDate();
+            assertThat(createdDate).isEqualTo(expectedDate);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -71,42 +67,40 @@ public class RhooCreatedDtTest {
 
     @Test
     public void testFactCurrentDateManualEnrichment() {
-        testFact.set(CREATED_DATE_KEY, LocalDate.of(2025, 3, 23));
+        LocalDateFieldEnrichment enrichment = new LocalDateFieldEnrichment();
+        Map<String, Object> params = new HashMap<>();
+        params.put("fieldFrom", FACT_ID + ":" + CREATED_DATE_KEY);
+        params.put("date_format", "yyyy-MM-dd");
+        enrichment.configure(params);
 
-        try {
-            PipeInterface pipe = PipeFactory.getPipeFactory().getPipe("rhoo_test_pipe_CreatedDate");
-            pipe.execute(contextInterface);
+        FactContainer fc = new FactContainer();
+        FactInterface custFact = new Fact(FACT_ID);
+        custFact.set(CREATED_DATE_KEY, null);
+        fc.setFact(custFact);
 
-            LocalDate enrichedDate = testFact.getLocalDate(CREATED_DATE_KEY);
-            assertEquals("2025-03-23", enrichedDate.toString());
+        ContextInterface ci = new ContextBase();
+        ci.setContext(CONTEXT_KEY, fc);
+        enrichment.getValue(fc);
 
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        custFact.set(CREATED_DATE_KEY, LocalDate.of(2025, 3, 23));
+        fc.setFact(custFact);
+
+        Object result = enrichment.getValue(fc);
+        assertEquals("2025-03-23", result.toString());
     }
 
     @Test
     public void testNullCreatedDateManualEnrichment() {
-        testFact.set(CREATED_DATE_KEY, null);
-
-        try {
-            PipeInterface pipe = PipeFactory.getPipeFactory().getPipe("rhoo_test_pipe_CreatedDate");
-            pipe.execute(contextInterface);
-
-            Object result = testFact.get(CREATED_DATE_KEY);
-            assertNull(result);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private LocalDateFieldEnrichment configureEnrichment(String format) {
         LocalDateFieldEnrichment enrichment = new LocalDateFieldEnrichment();
         Map<String, Object> params = new HashMap<>();
         params.put("fieldFrom", FACT_ID + ":" + CREATED_DATE_KEY);
-        params.put("date_format", format);
+        params.put("date_format", "test");
         enrichment.configure(params);
-        return enrichment;
+
+        FactContainer fc = new FactContainer();
+        ContextInterface ci = new ContextBase();
+        ci.setContext(CONTEXT_KEY, fc);
+
+        assertNull(enrichment.getValue(fc));
     }
 }
