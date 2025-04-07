@@ -24,13 +24,11 @@ import static org.junit.Assert.assertNull;
 
 public class RhooCreatedDtTest {
 
-    private static final String METADATA_DIRS = "../reghub-olympus-core/seed/metadata;" + "./seed";
+    private static final String METADATA_DIRS = "../reghub-olympus-core/seed/metadata;./seed";
     private static final String CACHE_NAME = "file_system_cache";
     private static final String FACT_ID = "cust_fact";
     private static final String CONTEXT_KEY = "fact.container.current";
     private static final String CREATED_DATE_KEY = "createdDate";
-    private static final LocalDate EXPECTED_LOCAL_DATE = LocalDate.of(2025, 5, 25);
-    private static final LocalDateTime EXPECTED_DATE_TIME = LocalDateTime.of(2025, 5, 25, 20, 35, 20, 26);
 
     private ContextInterface contextInterface;
     private FactContainer factContainer;
@@ -46,66 +44,61 @@ public class RhooCreatedDtTest {
         testFact = new Fact(FACT_ID);
         factContainer = new FactContainer();
         factContainer.setFact(testFact);
-
         contextInterface = new ContextBase();
         contextInterface.setContext(CONTEXT_KEY, factContainer);
     }
 
     @Test
     public void testCreatedDateEnrichmentViaPipe() {
-        testFact.set(CREATED_DATE_KEY, EXPECTED_DATE_TIME); // Enrichment should convert this to LocalDate
+        testFact.set(CREATED_DATE_KEY, LocalDateTime.of(2025, 5, 25, 20, 35, 20, 26));
+        executePipeAndAssertDate(LocalDate.of(2025, 5, 25));
+    }
 
+    private void executePipeAndAssertDate(LocalDate expectedDate) {
         try {
             PipeInterface pipe = PipeFactory.getPipeFactory().getPipe("rhoo_test_pipe_CreatedDate");
             pipe.execute(contextInterface);
 
             LocalDate result = testFact.getLocalDate(CREATED_DATE_KEY);
+            System.out.println("Enriched createdDate = " + result);
             assertThat(result)
-                    .as("Validate LocalDate enrichment after pipe execution")
-                    .isEqualTo(EXPECTED_LOCAL_DATE);
-
+                .as("Validate LocalDate enrichment via pipe execution")
+                .isEqualTo(expectedDate);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     @Test
-    public void testFactCurrentDateManualEnrichment() {
-        // Arrange
-        LocalDateFieldEnrichment enrichment = configureEnrichment("yyyy-MM-dd");
+    public void testCreatedDateManualEnrichmentWithValidDate() {
+        LocalDateFieldEnrichment enrichment = configureLocalDateEnrichment("yyyy-MM-dd");
 
         FactInterface custFact = new Fact(FACT_ID);
-        custFact.set(CREATED_DATE_KEY, null);
+        custFact.set(CREATED_DATE_KEY, LocalDate.of(2025, 3, 23));
         FactContainer fc = new FactContainer();
         fc.setFact(custFact);
 
         ContextInterface ci = new ContextBase();
         ci.setContext(CONTEXT_KEY, fc);
 
-        enrichment.getValue(fc); // should do nothing since value is null
-
-        // Act
-        custFact.set(CREATED_DATE_KEY, LocalDate.of(2025, 3, 23));
-        fc.setFact(custFact);
-
         Object result = enrichment.getValue(fc);
-
         System.out.println("Manual Enrichment Result = " + result);
         assertEquals("2025-03-23", result.toString());
     }
 
     @Test
-    public void testNullCreatedDateManualEnrichment() {
-        LocalDateFieldEnrichment enrichment = configureEnrichment("test");
+    public void testCreatedDateManualEnrichmentWithNullDate() {
+        LocalDateFieldEnrichment enrichment = configureLocalDateEnrichment("test");
 
         FactContainer fc = new FactContainer();
         ContextInterface ci = new ContextBase();
         ci.setContext(CONTEXT_KEY, fc);
 
-        assertNull(enrichment.getValue(fc));
+        Object result = enrichment.getValue(fc);
+        assertNull(result);
     }
 
-    private LocalDateFieldEnrichment configureEnrichment(String format) {
+    private LocalDateFieldEnrichment configureLocalDateEnrichment(String format) {
         LocalDateFieldEnrichment enrichment = new LocalDateFieldEnrichment();
         Map<String, Object> params = new HashMap<>();
         params.put("fieldFrom", FACT_ID + ":" + CREATED_DATE_KEY);
